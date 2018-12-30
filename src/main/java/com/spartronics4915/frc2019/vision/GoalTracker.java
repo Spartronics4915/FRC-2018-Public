@@ -5,7 +5,14 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import com.spartronics4915.frc2019.Constants;
+
+import com.spartronics4915.lib.geometry.Pose2d;
+
 import com.spartronics4915.lib.geometry.Translation2d;
+import com.spartronics4915.lib.geometry.Rotation2d;
+import com.spartronics4915.lib.util.InterpolatingTreeMap;
+import com.spartronics4915.lib.util.InterpolatingDouble;
 
 /**
  * This is used in the event that multiple goals are detected to judge all goals
@@ -21,6 +28,21 @@ public class GoalTracker {
      * Track reports contain all of the relevant information about a given goal
      * track.
      */
+
+    // TODO: Find a better home for these varibles
+
+    private Rotation2d camera_pitch_correction_;
+    private Rotation2d camera_yaw_correction_;
+
+    double differential_height_;
+
+    private InterpolatingTreeMap<InterpolatingDouble, Pose2d> field_to_vehicle_;
+
+    private static final Pose2d kVehicleToCamera = new Pose2d(
+            new Translation2d(Constants.kCameraXOffset, Constants.kCameraYOffset), new Rotation2d());
+
+    private static final int kObservationBufferSize = 100;
+
     public static class TrackReport {
         // Translation from the field frame to the goal
         public Translation2d field_to_goal;
@@ -96,26 +118,36 @@ public class GoalTracker {
     int mNextId = 0;
 
     public GoalTracker() {
+
     }
 
     public void reset() {
         mCurrentTracks.clear();
+
+        camera_pitch_correction_ = Rotation2d.fromDegrees(-Constants.kCameraPitchAngleDegrees);
+        camera_yaw_correction_ = Rotation2d.fromDegrees(-Constants.kCameraYawAngleDegrees);
+
+        differential_height_ = Constants.kBoilerTargetTopHeight - Constants.kCameraZOffset;
+
+        field_to_vehicle_ = new InterpolatingTreeMap<>(kObservationBufferSize);
+        field_to_vehicle_.put(new InterpolatingDouble(0.0), new Pose2d());
     }
 
-    public void update(double timestamp, List<Translation2d> field_to_goals) {
+    // TODO: This function needs to be double-checked that I am plugging the correct
+    // Translation2D
+    public void update(double timestamp, Translation2d field_to_goals) {
         // Try to update existing tracks
-        for (Translation2d target : field_to_goals) {
-            boolean hasUpdatedTrack = false;
-            for (GoalTrack track : mCurrentTracks) {
-                if (!hasUpdatedTrack) {
-                    if (track.tryUpdate(timestamp, target)) {
-                        hasUpdatedTrack = true;
-                    }
-                } else {
-                    track.emptyUpdate();
+        boolean hasUpdatedTrack = false;
+        for (GoalTrack track : mCurrentTracks) {
+            if (!hasUpdatedTrack) {
+                if (track.tryUpdate(timestamp, field_to_goals)) {
+                    hasUpdatedTrack = true;
                 }
+            } else {
+                track.emptyUpdate();
             }
         }
+
         // Prune any tracks that have died
         for (Iterator<GoalTrack> it = mCurrentTracks.iterator(); it.hasNext();) {
             GoalTrack track = it.next();
@@ -125,10 +157,8 @@ public class GoalTracker {
         }
         // If all tracks are dead, start new tracks for any detections
         if (mCurrentTracks.isEmpty()) {
-            for (Translation2d target : field_to_goals) {
-                mCurrentTracks.add(GoalTrack.makeNewTrack(timestamp, target, mNextId));
-                ++mNextId;
-            }
+            mCurrentTracks.add(GoalTrack.makeNewTrack(timestamp, field_to_goals, mNextId));
+            ++mNextId;
         }
     }
 
@@ -142,6 +172,52 @@ public class GoalTracker {
             rv.add(new TrackReport(track));
         }
         return rv;
+    }
+
+    public void addVisionUpdate(double timestamp, TargetInfo vision_update) {
+        Translation2d field_to_goals = new Translation2d();
+
+        Pose2d field_to_camera = getFieldToCamera(timestamp);
+
+        if (!(vision_update == null || vision_update.getTimestamp() != 0)) {
+            double ydeadband = (vision_update.getY() > -Constants.kCameraDeadband
+                    && vision_update.getY() < Constants.kCameraDeadband) ? 0.0 : vision_update.getY();
+
+            // Compensate for camera yaw
+            double xyaw = vision_update.getX() * camera_yaw_correction_.cos()
+                    + ydeadband * camera_yaw_correction_.sin();
+            double yyaw = ydeadband * camera_yaw_correction_.cos()
+                    - vision_update.getX() * camera_yaw_correction_.sin();
+            double zyaw = vision_update.getZ();
+
+            // Compensate for camera pitch
+            double xr = zyaw * camera_pitch_correction_.sin() + xyaw * camera_pitch_correction_.cos();
+            double yr = yyaw;
+            double zr = zyaw * camera_pitch_correction_.cos() - xyaw * camera_pitch_correction_.sin();
+
+            // find intersection with the goal
+            if (zr > 0) {
+                double scaling = differential_height_ / zr;
+                double distance = Math.hypot(xr, yr) * scaling + Constants.kBoilerRadius;
+                Rotation2d angle = new Rotation2d(xr, yr, true);
+                field_to_goals = (field_to_camera
+                        .transformBy(Pose2d
+                                .fromTranslation(new Translation2d(distance * angle.cos(), distance * angle.sin())))
+                        .getTranslation());
+            }
+
+        }
+        synchronized (this) {
+            update(timestamp, field_to_goals);
+        }
+    }
+
+    public synchronized Pose2d getFieldToCamera(double timestamp) {
+        return getFieldToVehicle(timestamp).transformBy(kVehicleToCamera);
+    }
+
+    public synchronized Pose2d getFieldToVehicle(double timestamp) {
+        return field_to_vehicle_.getInterpolated(new InterpolatingDouble(timestamp));
     }
 
 }
