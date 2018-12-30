@@ -101,6 +101,24 @@ public class Constants
     public static final double kTurretPPR = 4096.0;
     public static final double kTurretUnitsPerRev = 13653; // 4096 Quadrature CPR * (10 / 3) Belt reduction
     
+    // Vision
+    public static final String kVisionTableName = "Vision"; // name in networktables below root
+
+    // TODO: Change SmartDashboard entrys to reflect varible names in TargetInfo
+    public static final String kVisionTargetAngleName = "ax"; // "clock", "ay" are also available
+    public static final String kVisionTargetElevationName = "ay"; 
+    public static final String kVisionClockName = "clock"; 
+    public static final String kVisionStatusName = "State";  
+
+
+    // Goal Tracker (Fill in when applicible)
+    public static double kCameraXOffset = 0.0;
+    public static double kCameraYOffset = 0.0;
+    public static double kCameraZOffset = 0.0;
+    public static double kCameraPitchAngleDegrees = 0.0; 
+    public static double kCameraYawAngleDegrees = 0.0;
+    public static double kCameraDeadband = 0.0;
+
 
     // Control Board
     public static final int kDriveJoystickPort = 0;
