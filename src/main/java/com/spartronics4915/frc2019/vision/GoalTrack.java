@@ -1,4 +1,4 @@
-package com.spartronics4915.frc2019;
+package com.spartronics4915.frc2019.vision;
 
 import edu.wpi.first.wpilibj.Timer;
 
@@ -6,14 +6,16 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.team254.lib.util.math.Translation2d;
+import com.spartronics4915.lib.geometry.Translation2d;
+import com.spartronics4915.frc2019.Constants;
 
 /**
- * A class that is used to keep track of all goals detected by the vision system. As goals are detected/not detected
- * anymore by the vision system, function calls will be made to create, destroy, or update a goal track.
+ * A class that is used to keep track of all goals detected by the vision
+ * system. As goals are detected/not detected anymore by the vision system,
+ * function calls will be made to create, destroy, or update a goal track.
  * 
- * This helps in the goal ranking process that determines which goal to fire into, and helps to smooth measurements of
- * the goal's location over time.
+ * This helps in the goal ranking process that determines which goal to fire
+ * into, and helps to smooth measurements of the goal's location over time.
  * 
  * @see GoalTracker.java
  */
@@ -26,7 +28,8 @@ public class GoalTrack {
     }
 
     /**
-     * Makes a new track based on the timestamp and the goal's coordinates (from vision)
+     * Makes a new track based on the timestamp and the goal's coordinates (from
+     * vision)
      */
     public static GoalTrack makeNewTrack(double timestamp, Translation2d first_observation, int id) {
         GoalTrack rv = new GoalTrack();
@@ -50,6 +53,7 @@ public class GoalTrack {
             return false;
         }
         double distance = mSmoothedPosition.inverse().translateBy(new_observation).norm();
+        // XXX: What does kMaxTrackerDistance mean?
         if (distance < Constants.kMaxTrackerDistance) {
             mObservedPositions.put(timestamp, new_observation);
             pruneByTime();
@@ -65,7 +69,8 @@ public class GoalTrack {
     }
 
     /**
-     * Removes the track if it is older than the set "age" described in the Constants file.
+     * Removes the track if it is older than the set "age" described in the
+     * Constants file.
      * 
      * @see Constants.java
      */
