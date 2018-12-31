@@ -21,7 +21,8 @@ import java.util.Arrays;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-public class Robot extends IterativeRobot {
+public class Robot extends IterativeRobot
+{
 
     private Looper mEnabledLooper = new Looper();
     private Looper mDisabledLooper = new Looper();
@@ -39,17 +40,21 @@ public class Robot extends IterativeRobot {
     private static final String kRobotTestMode = "TestMode";
     private static final String kRobotTestVariant = "TestVariant";
 
-    public Robot() {
+    public Robot()
+    {
         Logger.logRobotConstruction();
     }
 
     @Override
-    public void robotInit() {
-        try {
+    public void robotInit()
+    {
+        try
+        {
             SmartDashboard.putString("Robot/GamePhase", "ROBOT INIT");
             Logger.logRobotInit();
 
-            try (InputStream manifest = getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF")) {
+            try (InputStream manifest = getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF"))
+            {
                 // build a version string
                 Attributes attributes = new Manifest(manifest).getMainAttributes();
                 String buildStr = "by: " + attributes.getValue("Built-By") + "  on: " + attributes.getValue("Built-At")
@@ -62,7 +67,9 @@ public class Robot extends IterativeRobot {
                 Logger.notice("Built " + buildStr);
                 Logger.notice("=================================================");
 
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 SmartDashboard.putString("Build", "version not found!");
                 Logger.warning("Build version not found!");
                 DriverStation.reportError(e.getMessage(), false);
@@ -77,7 +84,8 @@ public class Robot extends IterativeRobot {
             SmartDashboard.putString("CANBusStatus",
                     numDevices == Constants.kNumCANDevices ? "OK" : ("" + numDevices + "/" + Constants.kNumCANDevices));
 
-            try {
+            try
+            {
                 mDrive = Drive.getInstance();
                 // mTurret = Turret.getInstance(); // TODO
                 mSubsystemManager = new SubsystemManager(Arrays.asList(RobotStateEstimator.getInstance(), mDrive,
@@ -91,7 +99,9 @@ public class Robot extends IterativeRobot {
                 SmartDashboard.putString(kRobotTestModeOptions, "None,Drive,All");
                 SmartDashboard.putString(kRobotTestMode, "None");
                 SmartDashboard.putString(kRobotTestVariant, "");
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 // Try to avoid "robots don't quit" if there's a bug in subsystem init
                 Logger.logThrowableCrash("ERROR Couldn't instantiate subsystems", e);
             }
@@ -99,21 +109,26 @@ public class Robot extends IterativeRobot {
             AutoModeSelector.updateSmartDashboard();
             Logger.debug("Generating trajectories...");
             mTrajectoryGenerator.generateTrajectories();
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void disabledInit() {
+    public void disabledInit()
+    {
         SmartDashboard.putString("Robot/GamePhase", "DISABLED");
-        try {
+        try
+        {
             Logger.logDisabledInit();
             Logger.setVerbosity(SmartDashboard.getString(kRobotLogVerbosity, "DEBUG"));
 
             mEnabledLooper.stop();
-            if (mAutoModeExecutor != null) {
+            if (mAutoModeExecutor != null)
+            {
                 mAutoModeExecutor.stop();
             }
 
@@ -124,17 +139,21 @@ public class Robot extends IterativeRobot {
             mAutoModeExecutor = new AutoModeExecutor();
 
             mDisabledLooper.start();
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void autonomousInit() {
+    public void autonomousInit()
+    {
         SmartDashboard.putString("Robot/GamePhase", "AUTONOMOUS");
 
-        try {
+        try
+        {
             Logger.logAutoInit();
             Logger.setVerbosity(SmartDashboard.getString(kRobotLogVerbosity, "NOTICE"));
 
@@ -147,22 +166,27 @@ public class Robot extends IterativeRobot {
             mAutoModeExecutor.start();
 
             mEnabledLooper.start();
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void teleopInit() {
+    public void teleopInit()
+    {
         SmartDashboard.putString("Robot/GamePhase", "TELEOP");
 
-        try {
+        try
+        {
             Logger.logTeleopInit();
             Logger.setVerbosity(SmartDashboard.getString(kRobotLogVerbosity, "NOTICE"));
 
             mDisabledLooper.stop();
-            if (mAutoModeExecutor != null) {
+            if (mAutoModeExecutor != null)
+            {
                 mAutoModeExecutor.stop();
             }
 
@@ -172,18 +196,22 @@ public class Robot extends IterativeRobot {
 
             mDrive.setVelocity(DriveSignal.NEUTRAL, DriveSignal.NEUTRAL); // Reset velocity setpoints
             mDrive.setOpenLoop(new DriveSignal(0.05, 0.05));
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void testInit() {
+    public void testInit()
+    {
         SmartDashboard.putString("Robot/GamePhase", "TEST");
         Logger.setVerbosity(SmartDashboard.getString(kRobotLogVerbosity, "DEBUG"));
 
-        try {
+        try
+        {
             Logger.logTestInit();
 
             mDisabledLooper.stop();
@@ -191,11 +219,14 @@ public class Robot extends IterativeRobot {
 
             String testMode = SmartDashboard.getString(kRobotTestMode, "None");
             String testVariant = SmartDashboard.getString(kRobotTestVariant, "");
-            if (testMode.equals("None")) {
+            if (testMode.equals("None"))
+            {
                 Logger.notice("Robot: no tests to run");
                 mEnabledLooper.stop();
                 return;
-            } else {
+            }
+            else
+            {
                 Logger.notice("Robot: running test mode " + testMode + " variant:" + testVariant
                         + " -------------------------");
             }
@@ -203,50 +234,66 @@ public class Robot extends IterativeRobot {
             Timer.delay(5);
 
             boolean success = true;
-            if (testMode.equals("Drive") || testMode.equals("All")) {
+            if (testMode.equals("Drive") || testMode.equals("All"))
+            {
                 success &= mDrive.checkSystem(testVariant);
             }
 
-            if (!success) {
+            if (!success)
+            {
                 Logger.error("Robot: CHECK ABOVE OUTPUT SOME SYSTEMS FAILED!!!");
-            } else {
+            }
+            else
+            {
                 Logger.notice("Robot: ALL SYSTEMS PASSED");
             }
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void disabledPeriodic() {
-        try {
+    public void disabledPeriodic()
+    {
+        try
+        {
             outputToSmartDashboard();
 
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void autonomousPeriodic() {
-        try {
+    public void autonomousPeriodic()
+    {
+        try
+        {
             outputToSmartDashboard();
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void teleopPeriodic() {
+    public void teleopPeriodic()
+    {
         SmartDashboard.putString("Robot/GamePhase", "TELEOP");
         double timestamp = Timer.getFPGATimestamp();
         double throttle = mControlBoard.getThrottle();
         double turn = mControlBoard.getTurn();
 
-        try {
+        try
+        {
             DriveSignal command = mCheesyDriveHelper.cheesyDrive(throttle, turn, mControlBoard.getQuickTurn(), false);
             // mDrive.setOpenLoop(command.scale(48), DriveSignal.NEUTRAL);
             mDrive.setVelocity(command.scale(48), DriveSignal.NEUTRAL);
@@ -258,14 +305,17 @@ public class Robot extends IterativeRobot {
             // : Turret.WantedState.FOLLOW_LIDAR);
 
             outputToSmartDashboard();
-        } catch (Throwable t) {
+        }
+        catch (Throwable t)
+        {
             Logger.logThrowableCrash(t);
             throw t;
         }
     }
 
     @Override
-    public void testPeriodic() {
+    public void testPeriodic()
+    {
         outputToSmartDashboard();
     }
 
@@ -276,11 +326,13 @@ public class Robot extends IterativeRobot {
      * testPeriodic.
      */
     @Override
-    public void robotPeriodic() {
+    public void robotPeriodic()
+    {
         // intentionally left blank
     }
 
-    public void outputToSmartDashboard() {
+    public void outputToSmartDashboard()
+    {
         mSubsystemManager.outputToTelemetry();
         mEnabledLooper.outputToSmartDashboard();
         SmartDashboard.putNumber("Robot/BatteryVoltage", RobotController.getBatteryVoltage());

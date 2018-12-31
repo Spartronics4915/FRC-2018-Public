@@ -23,7 +23,9 @@ import com.spartronics4915.lib.util.InterpolatingDouble;
  * 
  * @see GoalTrack.java
  */
-public class GoalTracker {
+public class GoalTracker
+{
+
     /**
      * Track reports contain all of the relevant information about a given goal
      * track.
@@ -43,7 +45,9 @@ public class GoalTracker {
 
     private static final int kObservationBufferSize = 100;
 
-    public static class TrackReport {
+    public static class TrackReport
+    {
+
         // Translation from the field frame to the goal
         public Translation2d field_to_goal;
 
@@ -57,7 +61,8 @@ public class GoalTracker {
         // The track id
         public int id;
 
-        public TrackReport(GoalTrack track) {
+        public TrackReport(GoalTrack track)
+        {
             this.field_to_goal = track.getSmoothedPosition();
             this.latest_timestamp = track.getLatestTimestamp();
             this.stability = track.getStability();
@@ -71,7 +76,9 @@ public class GoalTracker {
      * used to pick which track we should aim at by calculating a score for each
      * track (highest score wins).
      */
-    public static class TrackReportComparator implements Comparator<TrackReport> {
+    public static class TrackReportComparator implements Comparator<TrackReport>
+    {
+
         // Reward tracks for being more stable (seen in more frames)
         double mStabilityWeight;
         // Reward tracks for being recently observed
@@ -83,7 +90,8 @@ public class GoalTracker {
         int mLastTrackId;
 
         public TrackReportComparator(double stability_weight, double age_weight, double switching_weight,
-                int last_track_id, double current_timestamp) {
+                int last_track_id, double current_timestamp)
+        {
             this.mStabilityWeight = stability_weight;
             this.mAgeWeight = age_weight;
             this.mSwitchingWeight = switching_weight;
@@ -91,7 +99,8 @@ public class GoalTracker {
             this.mCurrentTimestamp = current_timestamp;
         }
 
-        double score(TrackReport report) {
+        double score(TrackReport report)
+        {
             double stability_score = mStabilityWeight * report.stability;
             double age_score = mAgeWeight
                     * Math.max(0, (Constants.kMaxGoalTrackAge - (mCurrentTimestamp - report.latest_timestamp))
@@ -101,14 +110,20 @@ public class GoalTracker {
         }
 
         @Override
-        public int compare(TrackReport o1, TrackReport o2) {
+        public int compare(TrackReport o1, TrackReport o2)
+        {
             double diff = score(o1) - score(o2);
             // Greater than 0 if o1 is better than o2
-            if (diff < 0) {
+            if (diff < 0)
+            {
                 return 1;
-            } else if (diff > 0) {
+            }
+            else if (diff > 0)
+            {
                 return -1;
-            } else {
+            }
+            else
+            {
                 return 0;
             }
         }
@@ -117,11 +132,13 @@ public class GoalTracker {
     List<GoalTrack> mCurrentTracks = new ArrayList<>();
     int mNextId = 0;
 
-    public GoalTracker() {
+    public GoalTracker()
+    {
 
     }
 
-    public void reset() {
+    public void reset()
+    {
         mCurrentTracks.clear();
 
         camera_pitch_correction_ = Rotation2d.fromDegrees(-Constants.kCameraPitchAngleDegrees);
@@ -135,51 +152,65 @@ public class GoalTracker {
 
     // TODO: This function needs to be double-checked that I am plugging the correct
     // Translation2D
-    public void update(double timestamp, Translation2d field_to_goals) {
+    public void update(double timestamp, Translation2d field_to_goals)
+    {
         // Try to update existing tracks
         boolean hasUpdatedTrack = false;
-        for (GoalTrack track : mCurrentTracks) {
-            if (!hasUpdatedTrack) {
-                if (track.tryUpdate(timestamp, field_to_goals)) {
+        for (GoalTrack track : mCurrentTracks)
+        {
+            if (!hasUpdatedTrack)
+            {
+                if (track.tryUpdate(timestamp, field_to_goals))
+                {
                     hasUpdatedTrack = true;
                 }
-            } else {
+            }
+            else
+            {
                 track.emptyUpdate();
             }
         }
 
         // Prune any tracks that have died
-        for (Iterator<GoalTrack> it = mCurrentTracks.iterator(); it.hasNext();) {
+        for (Iterator<GoalTrack> it = mCurrentTracks.iterator(); it.hasNext();)
+        {
             GoalTrack track = it.next();
-            if (!track.isAlive()) {
+            if (!track.isAlive())
+            {
                 it.remove();
             }
         }
         // If all tracks are dead, start new tracks for any detections
-        if (mCurrentTracks.isEmpty()) {
+        if (mCurrentTracks.isEmpty())
+        {
             mCurrentTracks.add(GoalTrack.makeNewTrack(timestamp, field_to_goals, mNextId));
             ++mNextId;
         }
     }
 
-    public boolean hasTracks() {
+    public boolean hasTracks()
+    {
         return !mCurrentTracks.isEmpty();
     }
 
-    public List<TrackReport> getTracks() {
+    public List<TrackReport> getTracks()
+    {
         List<TrackReport> rv = new ArrayList<>();
-        for (GoalTrack track : mCurrentTracks) {
+        for (GoalTrack track : mCurrentTracks)
+        {
             rv.add(new TrackReport(track));
         }
         return rv;
     }
 
-    public void addVisionUpdate(double timestamp, TargetInfo vision_update) {
+    public void addVisionUpdate(double timestamp, TargetInfo vision_update)
+    {
         Translation2d field_to_goals = new Translation2d();
 
         Pose2d field_to_camera = getFieldToCamera(timestamp);
 
-        if (!(vision_update == null || vision_update.getTimestamp() != 0)) {
+        if (!(vision_update == null || vision_update.getTimestamp() != 0))
+        {
             double ydeadband = (vision_update.getY() > -Constants.kCameraDeadband
                     && vision_update.getY() < Constants.kCameraDeadband) ? 0.0 : vision_update.getY();
 
@@ -196,7 +227,8 @@ public class GoalTracker {
             double zr = zyaw * camera_pitch_correction_.cos() - xyaw * camera_pitch_correction_.sin();
 
             // find intersection with the goal
-            if (zr > 0) {
+            if (zr > 0)
+            {
                 double scaling = differential_height_ / zr;
                 double distance = Math.hypot(xr, yr) * scaling + Constants.kBoilerRadius;
                 Rotation2d angle = new Rotation2d(xr, yr, true);
@@ -207,16 +239,19 @@ public class GoalTracker {
             }
 
         }
-        synchronized (this) {
+        synchronized (this)
+        {
             update(timestamp, field_to_goals);
         }
     }
 
-    public synchronized Pose2d getFieldToCamera(double timestamp) {
+    public synchronized Pose2d getFieldToCamera(double timestamp)
+    {
         return getFieldToVehicle(timestamp).transformBy(kVehicleToCamera);
     }
 
-    public synchronized Pose2d getFieldToVehicle(double timestamp) {
+    public synchronized Pose2d getFieldToVehicle(double timestamp)
+    {
         return field_to_vehicle_.getInterpolated(new InterpolatingDouble(timestamp));
     }
 

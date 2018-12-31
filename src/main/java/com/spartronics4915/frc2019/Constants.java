@@ -12,7 +12,8 @@ import com.spartronics4915.lib.lidar.icp.SegmentReferenceModel;
  * A list of constants used by the rest of the robot code. This include physics
  * constants as well as constants determined through calibrations.
  */
-public class Constants {
+public class Constants
+{
 
     public static final double kLooperDt = 0.01;
 
@@ -91,7 +92,9 @@ public class Constants {
     public static final int kTurretMotorId = 10; // TODO: Figure out the correct motor ID
     public static final Translation2d kTurretTargetFieldPosition = new Translation2d(0, 0);
 
-    public static final class TurretPIDConstants {
+    public static final class TurretPIDConstants
+    {
+
         public static final double kP = 1.0, kI = 0.0, kD = 0.0, kF = 0.0;
     }; // TODO: Tune these
 
@@ -145,14 +148,20 @@ public class Constants {
      *
      * @param solenoidId One of the kXyzSolenoidId constants
      */
-    public static Solenoid makeSolenoidForId(int solenoidId) {
-        if (solenoidId <= 4) {
+    public static Solenoid makeSolenoidForId(int solenoidId)
+    {
+        if (solenoidId <= 4)
+        {
             // These solenoids are on PCM 1, wired 1-4 to 7-4.
             return new Solenoid(1, 8 - solenoidId);
-        } else if (solenoidId <= 8) {
+        }
+        else if (solenoidId <= 8)
+        {
             // These solenoids are on PCM 0, wired 5-8 to 0-3.
             return new Solenoid(0, solenoidId - 5);
-        } else if (solenoidId <= 12) {
+        }
+        else if (solenoidId <= 12)
+        {
             // These solenoids are on PCM 0, wired 9-12 to 7-4.
             return new Solenoid(0, 16 - solenoidId);
         }

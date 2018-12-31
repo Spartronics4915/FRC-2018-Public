@@ -32,7 +32,8 @@ import com.spartronics4915.lib.geometry.Pose2d;
  * NOTE: Removed all @override from file, nessissary?
  * 
  */
-public class VisionServer implements ILoop {
+public class VisionServer implements ILoop
+{
 
     public final double kPeriod = Constants.kLooperDt;
 
@@ -57,8 +58,10 @@ public class VisionServer implements ILoop {
     // TODO: Double-check with conventions...are underscores in proper place?
     private GoalTracker goal_tracker_ = new GoalTracker();
 
-    public static VisionServer getInstance() {
-        if (instance_ == null) {
+    public static VisionServer getInstance()
+    {
+        if (instance_ == null)
+        {
             instance_ = new VisionServer();
         }
         return instance_;
@@ -68,15 +71,19 @@ public class VisionServer implements ILoop {
      * VisionServer() { }
      */
 
-    public void onStart(double timestamp) {
+    public void onStart(double timestamp)
+    {
     }
 
-    public void onLoop(double timestamp) {
+    public void onLoop(double timestamp)
+    {
         update_ = generateUpdate();
         // Look at smartDashboard and create a targetinfo.
 
-        synchronized (this) {
-            if (update_ == null) {
+        synchronized (this)
+        {
+            if (update_ == null)
+            {
                 return;
             }
             // Re-null last update; Don't want to contine to add the same update to the
@@ -90,11 +97,13 @@ public class VisionServer implements ILoop {
         // Add to goaltracker
     }
 
-    public void onStop(double timestamp) {
+    public void onStop(double timestamp)
+    {
         // no-op
     }
 
-    public TargetInfo generateUpdate() {
+    public TargetInfo generateUpdate()
+    {
         // Pull entrys from SmartDashboard
         mVisionTargetAngleEntry = table.getEntry(Constants.kVisionTargetAngleName);
         mVisionTargetElevationEntry = table.getEntry(Constants.kVisionTargetElevationName);
@@ -109,20 +118,26 @@ public class VisionServer implements ILoop {
         String status = mVisionStatusEntry.getString(defaultValue);
         double timestamp = mVisionClockEntry.getNumber(0).doubleValue();
 
-        if (status != "null") {
+        if (status != "null")
+        {
 
             // Ensure we see a target
-            if (dx != 0 && dy != 0 && timestamp != 0) {
+            if (dx != 0 && dy != 0 && timestamp != 0)
+            {
                 TargetInfo target = new TargetInfo(dx, dy, timestamp);
-            
+
                 return target;
-            } else {
+            }
+            else
+            {
                 // XXX: This does not need to be constantly spit out
                 Logger.debug("No vision update detected");
                 return null;
             }
 
-        } else {
+        }
+        else
+        {
 
             Logger.warning("Error when generating a vision update; No connection");
             return null;
