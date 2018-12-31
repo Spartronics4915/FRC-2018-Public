@@ -84,6 +84,7 @@ public class VisionServer implements ILoop {
             update = update_;
             update_ = null;
         }
+
         goal_tracker_.addVisionUpdate(update.getTimestamp(), update);
         // goal_tracker_.addVisionUpdate(update.getTimestamp(), update.getTargets());
         // Add to goaltracker
@@ -110,13 +111,20 @@ public class VisionServer implements ILoop {
 
         if (status != "null") {
 
-            TargetInfo target = new TargetInfo(dx, dy, timestamp);
-
-            return target;
+            // Ensure we see a target
+            if (dx != 0 && dy != 0 && timestamp != 0) {
+                TargetInfo target = new TargetInfo(dx, dy, timestamp);
+            
+                return target;
+            } else {
+                // XXX: This does not need to be constantly spit out
+                Logger.debug("No vision update detected");
+                return null;
+            }
 
         } else {
 
-            Logger.warning("Error when generating a vision update");
+            Logger.warning("Error when generating a vision update; No connection");
             return null;
         }
 
