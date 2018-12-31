@@ -59,7 +59,13 @@
 	- [Why do we care about _past_ robot position and orientation?](#why-do-we-care-about-past-robot-position-and-orientation)
 - [Vision](#vision)
 	- [What camera did 254 use? How were vision targets delivered to the robot](#what-camera-did-254-use-how-were-vision-targets-delivered-to-the-robot)
-	- [What threads are involved in delivering vision targets?](#what-threads-are-involved-in-delivering-vision-targets)
+	- [How does a target go from the Rasberry pi to GoalTrack?]
+	- [What is a TargetInfo?]
+	- [What is GoalTracker?]
+	- [How are vision updates generated?]
+	- [Is there compensation for a potential camera offset?]
+	- [What are the related constants?]
+	- [Why is VisionServer a loop?]
 	- [What is the processing required to act upon vision target acquisition?](#what-is-the-processing-required-to-act-upon-vision-target-acquisition)
 	- [Why is `TargetInfo`'s X coordinate always zero?](#why-is-targetinfos-x-coordinate-always-zero)
 - [Paths](#paths)
@@ -573,14 +579,67 @@ private InterpolatingTreeMap<InterpolatingDouble, RigidTransform2d> mFieldToVehi
 > networktable values, or we can register a notification callback in the main
 > thread.
 
-#### What threads are involved in delivering vision targets?
-> `VisionProcessor` implements Loop and VisionUpdateReceiver.  Its job is to
-> to deliver VisionUpdates (received via synchronized gotUpdate())
-> to RobotState.  `RobotStateEstimator` is also running in a separate thread
-> and computes/delivers updates to the RobotState based on the `Drive` sensors.
-> Note that VisionProcessor sends data directly to RobotState in a manner
-> analogous to the RobotStateEstimator.  In that sense, the VisionProcessor
-> can be thought of as a `GoalStateEstimator`.
+#### How does a target go from the Rasberry pi to GoalTrack?
+
+> * generateUpdate() in VisionServer pulls data from SmartDashboard and stores it in a TargetInfo.
+> * The target is passed to GoalTracker through addVisionUpdate.
+> * Inside GoalTracker, the target is turned into a Pose2d.
+> * The conversion to Pose2d is where the camera offsets are implemented.
+> * The Pose2d is passed to update, which is the final step in the life of a target.
+> * Datastructures inside GoalTracker maintain lists of targets.
+
+#### What is a TargetInfo?
+
+> * A TargetInfo is a melding of 254's VisionMessage and TargetInfo. 
+> * Because our implementation of Vision requires much less processing robot-side, they wereturned into the same object.
+> * It has an x, y, z, and timestamp.
+> * The timestamp of the target is the clock value posted by the RasberryPi at the time of capture.
+> * The y and z values in the TargetInfo are equal to x and y in RasberryPi cords. 
+> * I have chosen to not modify the variable names in TargetInfo, because they >* represent the change from a 2D plane (Pi) to a 3D plane (Robot)
+> * The TargetInfo data structure is subject to be renamed, because it does NOT serve the same purpose in 254's codebase.
+
+#### What is GoalTracker?
+
+> * GoalTracker is the mirror of GoalTrack
+> * Both classes are responsible for the tracking of all vision targets discovered through the match
+> * I don't 100% understand how GoalTracker and GoalTrack 'weights' particular targets, and how the tracking system works
+
+#### How are vision updates generated?
+
+> * Vision updates are generated in VisionServer (Registered as a loop)
+> * The function generateUpdate() pulls the x,y, status, and timestamp posted by the Pi. The x, y, and timestamp is pushed into a TargetInfo
+> * Currently, generateUpdate() only returns a non-null TargetInfo if the following conditions are true:
+>  x is not equal to 0
+>  y is not equal to 0
+>  timestamp is not equal to 0
+> * The aforementioned logic IS VERY SHADY. Subject to change.
+
+#### Is there compensation for a potential camera offset?
+
+> * Yes!
+> * All the geometry and trig is done in GoalTracker, which is pulling 6 main constants about the cameras position in relation to the robot.
+> * It is very important that the constants are updated properly once a robot model becomes clear, so the target tracking system works properly.
+
+#### What are the related constants?
+
+> * There are 6 constants, one for pitch, yaw, and roll, and 3 for x, y, and z of the camera in relation to the robot chassis.
+> * kCameraFrameRate is used in GoalTrack to weight a specific observation. (I.E: An observation measured at a low frame rate is likely to be incorrect)
+> * Two new constants were added to control goal weighting.
+> * There are some misc. constants for 2017's Steamworks. These will change for the 2019 game. 
+> * They are used in GoalTrack to determine intersection with the Boiler (Or in our case, and objective).
+> * As mentioned above, it is very important to update and maintain the new constants.
+
+#### Why is VisionServer a loop?
+
+> * 254 wrote VisionServer as a CrashTrackingRunnable, due to their method of communication.
+> * 254's communication relied on a JSON reading generated by the phone, and was received over ADB. 
+> * Because of this, their code would often block waiting for input.
+> * Blocking code as a loop is VERY BAD. 
+> * Each of the registered loops(Subsystems, Drive, Controls(?) ) is called every iteration of looper, 
+> * and if one of them stops to run a large chunk of code waiting for input (I.E A JSON reading), 
+> * then all the other loops are delayed until the blocking code is finished.
+> * However, our vision solution is not nearly as complicated, and requires no blocking code. Thus, a loop!
+
 
 #### What is the processing required to act upon vision target acquisition?
 > Remember that the goal is captured in the coordinate frame of the camera

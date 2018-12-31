@@ -8,8 +8,7 @@ import com.spartronics4915.lib.lidar.icp.SegmentReferenceModel;
 
 /**
  * A list of constants used by the rest of the robot code. This include physics
- * constants as well as constants
- * determined through calibrations.
+ * constants as well as constants determined through calibrations.
  */
 public class Constants
 {
@@ -58,8 +57,7 @@ public class Constants
 
     // LIDAR CONSTANTS ----------------
     public static final IReferenceModel kSegmentReferenceModel = new SegmentReferenceModel(
-        Segment.makeInRectangle(new Point(2, 2), new Point(0, 0))
-    );
+            Segment.makeInRectangle(new Point(2, 2), new Point(0, 0)));
 
     // Pose of the LIDAR frame w.r.t. the robot frame
     public static final double kLidarXOffset = -11;
@@ -92,8 +90,8 @@ public class Constants
     // (Note that if multiple talons are dedicated to a mechanism, any sensors
     // are attached to the master)
 
-    public static final int kCANTimeoutMs = 10; //use for on the fly updates
-    public static final int kLongCANTimeoutMs = 100; //use for constructors
+    public static final int kCANTimeoutMs = 10; // use for on the fly updates
+    public static final int kLongCANTimeoutMs = 100; // use for constructors
 
     // Number of CAN devices for the CAN probe
     public static final int kNumTalons = 5; // total talon count on robot (not testbed)
@@ -111,16 +109,51 @@ public class Constants
     // Turret
     public static final int kTurretMotorId = 10; // TODO: Figure out the correct motor ID
     public static final Translation2d kTurretTargetFieldPosition = new Translation2d(0, 0);
-    public static final class TurretPIDConstants {
+
+    public static final class TurretPIDConstants
+    {
+
         public static final double kP = 1.0, kI = 0.0, kD = 0.0, kF = 0.0;
     }; // TODO: Tune these
+
     public static final Translation2d kTurretRobotCenterOffset = new Translation2d(0, 0); // TODO: Set offset
-    // We're using the CTRE Mag encoders: https://content.vexrobotics.com/vexpro/pdf/Magnetic-Encoder-User's-Guide-01282016.pdf
+    // We're using the CTRE Mag encoders:
+    // https://content.vexrobotics.com/vexpro/pdf/Magnetic-Encoder-User's-Guide-01282016.pdf
     public static final double kTurretPPR = 4096.0;
     public static final double kTurretUnitsPerRev = 13653; // 4096 Quadrature CPR * (10 / 3) Belt reduction
-    
+
+    // Vision
+    public static final String kVisionTableName = "Vision"; // name in networktables below root
+
+    // TODO: Change SmartDashboard entries to reflect varible names in TargetInfo
+    public static final String kVisionTargetAngleName = "ax"; // "clock", "ay" are also available
+    public static final String kVisionTargetElevationName = "ay";
+    public static final String kVisionClockName = "clock";
+    public static final String kVisionStatusName = "State";
+
+    // TODO: Change this value as the season goes on
+    public static double kCameraFrameRate = 30.0;
+
+    // Goal Tracker (Fill in when applicible)
+    public static double kCameraXOffset = 0.0;
+    public static double kCameraYOffset = 0.0;
+    public static double kCameraZOffset = 0.0;
+
+    public static double kCameraPitchAngleDegrees = 0.0;
+    public static double kCameraYawAngleDegrees = 0.0;
+    public static double kCameraDeadband = 0.0;
+
+    public static double kMaxGoalTrackAge = 1.0;
+
+    public static double kMaxTrackerDistance = 18.0;
+
+    // (These are constants for 2017's Steamworks. Used as a demo value for
+    // goaltracker
+    public static double kBoilerTargetTopHeight = 88.0;
+    public static double kBoilerRadius = 7.5;
 
     // Control Board
     public static final int kDriveJoystickPort = 0;
     public static final double kJoystickThreshold = 0.5;
+
 }

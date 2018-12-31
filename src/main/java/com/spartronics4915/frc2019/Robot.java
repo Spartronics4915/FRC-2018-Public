@@ -4,6 +4,7 @@ import com.spartronics4915.frc2019.auto.AutoModeExecutor;
 import com.spartronics4915.frc2019.loops.Looper;
 import com.spartronics4915.frc2019.paths.TrajectoryGenerator;
 import com.spartronics4915.frc2019.subsystems.*;
+import com.spartronics4915.frc2019.vision.VisionServer;
 import com.spartronics4915.lib.geometry.Pose2d;
 import com.spartronics4915.lib.util.*;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -52,14 +53,12 @@ public class Robot extends IterativeRobot
             SmartDashboard.putString("Robot/GamePhase", "ROBOT INIT");
             Logger.logRobotInit();
 
-            try (InputStream manifest =
-                    getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF"))
+            try (InputStream manifest = getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF"))
             {
                 // build a version string
                 Attributes attributes = new Manifest(manifest).getMainAttributes();
-                String buildStr = "by: " + attributes.getValue("Built-By") +
-                        "  on: " + attributes.getValue("Built-At") +
-                        "  (" + attributes.getValue("Code-Version") + ")";
+                String buildStr = "by: " + attributes.getValue("Built-By") + "  on: " + attributes.getValue("Built-At")
+                        + "  (" + attributes.getValue("Code-Version") + ")";
                 SmartDashboard.putString("Build", buildStr);
                 SmartDashboard.putString(kRobotLogVerbosity, "DEBUG"); // Verbosity level
 
@@ -83,23 +82,21 @@ public class Robot extends IterativeRobot
             Logger.notice("CANDevicesFound: " + canReport);
             int numDevices = canProbe.getCANDeviceCount();
             SmartDashboard.putString("CANBusStatus",
-                    numDevices == Constants.kNumCANDevices ? "OK"
-                            : ("" + numDevices + "/" + Constants.kNumCANDevices));
+                    numDevices == Constants.kNumCANDevices ? "OK" : ("" + numDevices + "/" + Constants.kNumCANDevices));
 
             try
             {
                 mDrive = Drive.getInstance();
                 // mTurret = Turret.getInstance(); // TODO
-                mSubsystemManager = new SubsystemManager(
-                        Arrays.asList(
-                                RobotStateEstimator.getInstance(),
-                                mDrive,
-                                // mTurret, TODO: Uncomment when turret is added
-                                Superstructure.getInstance()));
+                mSubsystemManager = new SubsystemManager(Arrays.asList(RobotStateEstimator.getInstance(), mDrive,
+                        // mTurret, TODO: Uncomment when turret is added
+                        Superstructure.getInstance()));
                 mSubsystemManager.registerEnabledLoops(mEnabledLooper);
                 mSubsystemManager.registerDisabledLoops(mDisabledLooper);
-                SmartDashboard.putString(kRobotTestModeOptions, 
-                                         "None,Drive,All");
+
+                mEnabledLooper.register(new VisionServer());
+
+                SmartDashboard.putString(kRobotTestModeOptions, "None,Drive,All");
                 SmartDashboard.putString(kRobotTestMode, "None");
                 SmartDashboard.putString(kRobotTestVariant, "");
             }
@@ -193,7 +190,8 @@ public class Robot extends IterativeRobot
                 mAutoModeExecutor.stop();
             }
 
-            // RobotState.getInstance().reset(Timer.getFPGATimestamp(), Pose2d.identity()); Do not do this here 
+            // RobotState.getInstance().reset(Timer.getFPGATimestamp(), Pose2d.identity());
+            // Do not do this here
             mEnabledLooper.start();
 
             mDrive.setVelocity(DriveSignal.NEUTRAL, DriveSignal.NEUTRAL); // Reset velocity setpoints
@@ -229,8 +227,8 @@ public class Robot extends IterativeRobot
             }
             else
             {
-                Logger.notice("Robot: running test mode " + testMode +
-                        " variant:" + testVariant + " -------------------------");
+                Logger.notice("Robot: running test mode " + testMode + " variant:" + testVariant
+                        + " -------------------------");
             }
             Logger.notice("Waiting 5 seconds before running test methods.");
             Timer.delay(5);
@@ -296,6 +294,7 @@ public class Robot extends IterativeRobot
 
         try
         {
+
             DriveSignal command = mCheesyDriveHelper.cheesyDrive(throttle, turn, mControlBoard.getQuickTurn(), false)/*.scale(12)*/;
             mDrive.setOpenLoop(command);
             // mDrive.setVelocity(command, new DriveSignal(
@@ -303,9 +302,11 @@ public class Robot extends IterativeRobot
             //     command.scale(Constants.kDriveLeftKv).getRight() + Math.copySign(Constants.kDriveLeftVIntercept, command.getRight())
             // ));
 
-            // if (mControlBoard.getSwitchTurretMode()) TODO: Uncomment when turret is finished
-            //     mTurret.setWantedState(mTurret.getWantedState() == Turret.WantedState.FOLLOW_LIDAR ? Turret.WantedState.FOLLOW_ODOMETRY
-            //             : Turret.WantedState.FOLLOW_LIDAR);
+            // if (mControlBoard.getSwitchTurretMode()) TODO: Uncomment when turret is
+            // finished
+            // mTurret.setWantedState(mTurret.getWantedState() ==
+            // Turret.WantedState.FOLLOW_LIDAR ? Turret.WantedState.FOLLOW_ODOMETRY
+            // : Turret.WantedState.FOLLOW_LIDAR);
 
             outputToSmartDashboard();
         }
@@ -322,11 +323,11 @@ public class Robot extends IterativeRobot
         outputToSmartDashboard();
     }
 
-     /**
-     * Unused but required function. Plays a similar role to our
-     * allPeriodic method. Presumably the timing in IterativeRobotBase wasn't
-     * to the liking of initial designers of this system. Perhaps because
-     * we don't want it to run during testPeriodic.
+    /**
+     * Unused but required function. Plays a similar role to our allPeriodic method.
+     * Presumably the timing in IterativeRobotBase wasn't to the liking of initial
+     * designers of this system. Perhaps because we don't want it to run during
+     * testPeriodic.
      */
     @Override
     public void robotPeriodic()
@@ -338,9 +339,7 @@ public class Robot extends IterativeRobot
     {
         mSubsystemManager.outputToTelemetry();
         mEnabledLooper.outputToSmartDashboard();
-        SmartDashboard.putNumber("Robot/BatteryVoltage", 
-            RobotController.getBatteryVoltage());
-        SmartDashboard.putNumber("Robot/InputCurrent", 
-            RobotController.getInputCurrent());
+        SmartDashboard.putNumber("Robot/BatteryVoltage", RobotController.getBatteryVoltage());
+        SmartDashboard.putNumber("Robot/InputCurrent", RobotController.getInputCurrent());
     }
 }
