@@ -31,6 +31,7 @@ public class Robot extends IterativeRobot
     private SubsystemManager mSubsystemManager = null;
     private Drive mDrive = null;
     private Turret mTurret = null;
+    private MySubsystem mMySubsystem = null;
     private AutoModeExecutor mAutoModeExecutor;
 
     // smartdashboard keys
@@ -90,15 +91,16 @@ public class Robot extends IterativeRobot
             {
                 mDrive = Drive.getInstance();
                 // mTurret = Turret.getInstance(); // TODO
+                mMySubsystem = MySubsystem.getInstance();
                 mSubsystemManager = new SubsystemManager(
                         Arrays.asList(
                                 RobotStateEstimator.getInstance(),
-                                mDrive,
+                                mDrive, mMySubsystem,
                                 // mTurret, TODO: Uncomment when turret is added
                                 Superstructure.getInstance()));
                 mSubsystemManager.registerEnabledLoops(mEnabledLooper);
                 mSubsystemManager.registerDisabledLoops(mDisabledLooper);
-                SmartDashboard.putString(kRobotTestModeOptions, 
+                SmartDashboard.putString(kRobotTestModeOptions,
                                          "None,Drive,All");
                 SmartDashboard.putString(kRobotTestMode, "None");
                 SmartDashboard.putString(kRobotTestVariant, "");
@@ -138,6 +140,8 @@ public class Robot extends IterativeRobot
             Drive.getInstance().zeroSensors();
             RobotStateEstimator.getInstance().resetRobotStateMaps(Timer.getFPGATimestamp());
 
+            MySubsystem.getInstance(); // Not entirely sure if this would go here
+
             // Reset all auto mode state.
             mAutoModeExecutor = new AutoModeExecutor();
 
@@ -164,6 +168,8 @@ public class Robot extends IterativeRobot
 
             RobotStateEstimator.getInstance().resetRobotStateMaps(Timer.getFPGATimestamp());
             Drive.getInstance().zeroSensors();
+
+            MySubsystem.getInstance();
 
             mAutoModeExecutor.setAutoMode(AutoModeSelector.getSelectedAutoMode());
             mAutoModeExecutor.start();
@@ -193,7 +199,7 @@ public class Robot extends IterativeRobot
                 mAutoModeExecutor.stop();
             }
 
-            // RobotState.getInstance().reset(Timer.getFPGATimestamp(), Pose2d.identity()); Do not do this here 
+            // RobotState.getInstance().reset(Timer.getFPGATimestamp(), Pose2d.identity()); Do not do this here
             mEnabledLooper.start();
 
             mDrive.setVelocity(DriveSignal.NEUTRAL, DriveSignal.NEUTRAL); // Reset velocity setpoints
@@ -338,9 +344,9 @@ public class Robot extends IterativeRobot
     {
         mSubsystemManager.outputToTelemetry();
         mEnabledLooper.outputToSmartDashboard();
-        SmartDashboard.putNumber("Robot/BatteryVoltage", 
+        SmartDashboard.putNumber("Robot/BatteryVoltage",
             RobotController.getBatteryVoltage());
-        SmartDashboard.putNumber("Robot/InputCurrent", 
+        SmartDashboard.putNumber("Robot/InputCurrent",
             RobotController.getInputCurrent());
     }
 }
