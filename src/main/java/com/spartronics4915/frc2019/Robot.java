@@ -140,8 +140,6 @@ public class Robot extends IterativeRobot
             Drive.getInstance().zeroSensors();
             RobotStateEstimator.getInstance().resetRobotStateMaps(Timer.getFPGATimestamp());
 
-            MySubsystem.getInstance(); // Not entirely sure if this would go here
-
             // Reset all auto mode state.
             mAutoModeExecutor = new AutoModeExecutor();
 
@@ -168,8 +166,6 @@ public class Robot extends IterativeRobot
 
             RobotStateEstimator.getInstance().resetRobotStateMaps(Timer.getFPGATimestamp());
             Drive.getInstance().zeroSensors();
-
-            MySubsystem.getInstance();
 
             mAutoModeExecutor.setAutoMode(AutoModeSelector.getSelectedAutoMode());
             mAutoModeExecutor.start();
