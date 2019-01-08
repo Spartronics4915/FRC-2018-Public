@@ -11,26 +11,66 @@ public class RobotStateMap
 {
     private static final int kObservationBufferSize = 100;
 
-    // XXX: instead of three maps we could have only one.  Then
-    // we would have less memory and lookup time overhead.  
-    //      class State implements Interpolable 
-    //      { 
-    //          public Pose2d pose;  
-    //          public Twist2d measured; 
-    //          public Twist2d predicted; 
-    //          ... constructors ...
-    //          @Override
-    //          State interpolate(State other, double pct)
-    //          {
-    //              return new State(pose.interplate(other.pose, pct),
-    //                               measured.interpolate(other.measured, pct),      
-    //                               predicted.interpolate(other.predicted, pct),      
-    //                              );
-    //          }
-    //      }
-    private InterpolatingTreeMap<InterpolatingDouble, Pose2d> mFieldToVehicle;
-    private InterpolatingTreeMap<InterpolatingDouble, Twist2d> mPredictedVelocity;
-    private InterpolatingTreeMap<InterpolatingDouble, Twist2d> mMeasuredVelocity;
+    static public class State implements Interpolable<State>
+    {
+        public Pose2d pose;
+        public Twist2d integrationVelocity, predictedVelocity;
+        public double timestamp;
+
+        public State()
+        {
+            this.pose = new Pose2d();
+            this.integrationVelocity = Twist2d.identity();
+            this.predictedVelocity = Twist2d.identity();
+            this.timestamp =  0;
+        }
+
+        public State(State other)
+        {
+            this.pose = other.pose;
+            this.integrationVelocity = other.integrationVelocity;
+            this.predictedVelocity = other.predictedVelocity;
+            this.timestamp = other.timestamp;
+        }
+
+        public State(Pose2d pose, Twist2d iVel, Twist2d pVel, double ts)
+        {
+            this.pose = pose;
+            this.integrationVelocity = iVel;
+            this.predictedVelocity = pVel;
+            this.timestamp = ts;
+        }
+
+        public State(Pose2d p, double ts)
+        {
+            this.pose = p;
+            this.integrationVelocity = Twist2d.identity();
+            this.predictedVelocity = Twist2d.identity();
+            this.timestamp = ts;
+        }
+
+        @Override
+        public State interpolate(final State other, double pct)
+        {
+            if(pct <= 0)
+                return new State(this);
+            else
+            if(pct >= 0)
+                return new State(other);
+            else
+            {
+                final State s = new State(
+                    this.pose.interpolate(other.pose, pct),
+                    this.integrationVelocity.interpolate(other.integrationVelocity, pct),
+                    this.predictedVelocity.interpolate(other.predictedVelocity, pct),
+                    this.timestamp + pct*(other.timestamp - this.timestamp)
+                );
+                return s;
+            }
+        }
+    }
+
+    private InterpolatingTreeMap<InterpolatingDouble, State> mStateMap;
     private double mDistanceDriven;
 
     public RobotStateMap()
@@ -41,14 +81,11 @@ public class RobotStateMap
     /**
      * Resets the field to robot transform (robot's position on the field)
      */
-    public synchronized void reset(double start_time, Pose2d initial_field_to_vehicle)
+    public synchronized void reset(double startTime, Pose2d initialPose)
     {
-        mFieldToVehicle = new InterpolatingTreeMap<>(kObservationBufferSize);
-        mFieldToVehicle.put(new InterpolatingDouble(start_time), initial_field_to_vehicle);
-        mPredictedVelocity = new InterpolatingTreeMap<>(kObservationBufferSize);
-        mMeasuredVelocity = new InterpolatingTreeMap<>(kObservationBufferSize);
-        mMeasuredVelocity.put(new InterpolatingDouble(start_time), Twist2d.identity());
-        mPredictedVelocity.put(new InterpolatingDouble(start_time), Twist2d.identity());
+        mStateMap = new InterpolatingTreeMap<>(kObservationBufferSize);
+        mStateMap.put(new InterpolatingDouble(startTime), 
+                      new State(initialPose, startTime));
         mDistanceDriven = 0.0;
     }
 
@@ -57,13 +94,29 @@ public class RobotStateMap
         mDistanceDriven = 0.0;
     }
 
-    public synchronized void addObservations(double timestamp, Pose2d pose, Twist2d measuredVelocity, Twist2d predictedVelocity)
+    public synchronized void addObservations(double timestamp, 
+                                            Pose2d pose,
+                                            Twist2d velI,
+                                            Twist2d velP)
     {
         InterpolatingDouble ts = new InterpolatingDouble(timestamp);
-        mFieldToVehicle.put(ts, pose);
-        mMeasuredVelocity.put(ts, measuredVelocity);
-        mPredictedVelocity.put(ts, predictedVelocity);
-        mDistanceDriven += measuredVelocity.dx; // do we care about dy here?
+        mStateMap.put(ts, new State(pose, velI, velP, timestamp));
+        mDistanceDriven += velI.dx; // Math.hypot(velocity.dx, velocity.dy); 
+        // do we care about time here?
+        //  no: if dx is measured in distance/loopinterval (loopinterval == 1)
+        //     
+        // do we care about dy here? 
+        //  no: if velocity is in robot coords (no transverse motion expected)
+        //  yes: if velocity is in field coords
+    }
+
+    /**
+     * Returns the robot's state on the field at a certain time. Linearly
+     * interpolates between stored robot state to fill in the gaps.
+     */
+    public synchronized State get(double ts)
+    {
+        return mStateMap.getInterpolated(new InterpolatingDouble(ts));
     }
 
     /**
@@ -72,39 +125,17 @@ public class RobotStateMap
      */
     public synchronized Pose2d getFieldToVehicle(double timestamp)
     {
-        return mFieldToVehicle.getInterpolated(new InterpolatingDouble(timestamp));
+        return this.get(timestamp).pose;
     }
 
-    public synchronized Map.Entry<InterpolatingDouble, Pose2d> getLatestFieldToVehicle()
+    public synchronized Pose2d getLatestFieldToVehicle()
     {
-        return mFieldToVehicle.lastEntry();
+        return mStateMap.lastEntry().getValue().pose;
     }
 
-    // Caller beware: what is the unit of lookahead_time?
-    public synchronized Pose2d getPredictedFieldToVehicle(double lookahead_time)
+    public synchronized State getLatestState()
     {
-        return getLatestFieldToVehicle().getValue()
-                .transformBy(Pose2d.exp(getLatestPredictedVelocity().getValue().scaled(lookahead_time)));
-    }
-
-    public synchronized Twist2d getPredictedVelocity(double timestamp)
-    {
-        return mPredictedVelocity.getInterpolated(new InterpolatingDouble(timestamp));
-    }
-
-    public synchronized Map.Entry<InterpolatingDouble, Twist2d> getLatestPredictedVelocity()
-    {
-        return mPredictedVelocity.lastEntry();
-    }
-
-    public synchronized Twist2d getMeasuredVelocity(double timestamp)
-    {
-        return mMeasuredVelocity.getInterpolated(new InterpolatingDouble(timestamp));
-    }
-
-    public synchronized Map.Entry<InterpolatingDouble, Twist2d> getLatestMeasuredVelocity()
-    {
-        return mMeasuredVelocity.lastEntry();
+        return mStateMap.lastEntry().getValue();
     }
 
     public synchronized double getDistanceDriven()
